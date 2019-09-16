@@ -31,11 +31,15 @@ public class Gamepad extends LinearOpMode {
         runtime.reset();
         
         while (opModeIsActive()) {
-         /*Integer ci = csensor.argb();
-         String c = Integer.toString(ci);*/
+         int ci = csensor.argb();
+         String c = Integer.toString(ci);
          
-         String c = "Red:"+csensor.red()+" Green:"+csensor.green()+" Blue:"+csensor.blue();
+         
+         //String c = "Red:"+csensor.red()+" Green:"+csensor.green()+" Blue:"+csensor.blue();
          telemetry.addData("Status", "Color detected:" + c);
+         if (ci==33554432) {
+             telemetry.addData("Satus", "STONE DETECTED");
+         }
          telemetry.update();
          
          leftMotor.setPower(-gamepad1.left_stick_y);
