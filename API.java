@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 public class API {
     
@@ -54,6 +55,11 @@ public class API {
         
         public void stop() {
             motor.setPower(0);
+        }
+        
+        public void setDirection(DcMotorSimple.Direction direction) {
+            motor.setDirection(direction);
+            
         }
     }
 }
