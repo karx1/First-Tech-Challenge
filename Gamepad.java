@@ -13,14 +13,15 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
 public class Gamepad extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     ColorSensor csensor;
-    DcMotor leftMotor;
-    DcMotor rightMotor;
+    API.Motor leftMotor;
+    API.Motor rightMotor;
     
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry.addData("Status", "Initialized");
-        leftMotor = hardwareMap.dcMotor.get("m3");
-        rightMotor = hardwareMap.dcMotor.get("m2");
+        API.init(hardwareMap);
+        leftMotor = API.Motor.M3;
+        rightMotor = API.Motor.M2;
         csensor = hardwareMap.colorSensor.get("color");
         csensor.enableLed(false);
         
@@ -38,12 +39,12 @@ public class Gamepad extends LinearOpMode {
          //String c = "Red:"+csensor.red()+" Green:"+csensor.green()+" Blue:"+csensor.blue();
          telemetry.addData("Status", "Color detected:" + c);
          if (ci==33554432) {
-             telemetry.addData("Satus", "STONE DETECTED");
+             telemetry.addData("Status", "STONE DETECTED");
          }
          telemetry.update();
          
-         leftMotor.setPower(-gamepad1.left_stick_y);
-         rightMotor.setPower(-gamepad1.right_stick_y);
+         leftMotor.start(-gamepad1.left_stick_y);
+         rightMotor.start(-gamepad1.right_stick_y);
         }
     }
 }
