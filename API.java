@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 
@@ -42,6 +43,7 @@ public class API {
         void init(HardwareMap map) {
             motor = map.get(DcMotor.class, name);
             motor.setPower(0);
+
         }
         
         public void start(double power) {
