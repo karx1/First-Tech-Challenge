@@ -18,8 +18,8 @@ public class Gamepad extends LinearOpMode {
     
     @Override
     public void runOpMode() throws InterruptedException {
-        telemetry.addData("Status", "Initialized");
-        API.init(hardwareMap);
+        API.print("Initialized");
+        API.init(this);
         leftMotor = API.Motor.M3;
         rightMotor = API.Motor.M2;
         csensor = hardwareMap.colorSensor.get("color");
@@ -37,11 +37,10 @@ public class Gamepad extends LinearOpMode {
          
          
          //String c = "Red:"+csensor.red()+" Green:"+csensor.green()+" Blue:"+csensor.blue();
-         telemetry.addData("Status", "Color detected:" + c);
+         API.print("Color detected:" + c);
          if (ci==33554432) {
-             telemetry.addData("Status", "STONE DETECTED");
+             API.print("STONE DETECTED");
          }
-         telemetry.update();
          
          leftMotor.start(-gamepad1.left_stick_y);
          rightMotor.start(-gamepad1.right_stick_y);
