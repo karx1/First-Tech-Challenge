@@ -11,10 +11,10 @@ public class RunTeleOp extends LinearOpMode {
     
     @Override
     public void runOpMode() {
-        API.init(hardwareMap);
+        API.init(this);
         API.Motor.M2.start(0.5);
         API.Motor.M3.start(-0.5);
-        pause(5);
+        API.pause(5);
         API.Motor.M2.stop();
         API.Motor.M3.stop();
     }
