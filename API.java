@@ -1,18 +1,35 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 public class API {
+    private static OpMode opmode;
     
-    static void init(HardwareMap map) {
+    public static void init(OpMode mode) {
+        opmode = mode;
+        init(mode.hardwareMap);
+    }
+    private static void init(HardwareMap map) {
         for (Motor m : Motor.values()) {
             m.init(map);
         }
         Sensors.Color.sensor = map.colorSensor.get("color");
+    }
+    
+    public static void print(String s) {
+        opmode.telemetry.addLine(s);
+        opmode.telemetry.update();
+    }
+    
+    public static void pause(double seconds) {
+        try{
+            Thread.sleep((long) ((seconds-1)*1000));
+        } catch (Exception e) {}
     }
     
     public static class Sensors {
