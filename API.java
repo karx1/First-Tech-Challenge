@@ -22,7 +22,7 @@ public class API {
     }
     
     public static void print(String s) {
-        opmode.telemetry.addLine(s);
+        opmode.telemetry.addData("Status", s);
         opmode.telemetry.update();
     }
     
