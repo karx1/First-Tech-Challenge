@@ -18,8 +18,8 @@ public class Gamepad extends LinearOpMode {
     
     @Override
     public void runOpMode() throws InterruptedException {
-        API.init(this);
         API.print("Initialized");
+        API.init(this);
         leftMotor = API.Motor.M3;
         rightMotor = API.Motor.M2;
         csensor = hardwareMap.colorSensor.get("color");
