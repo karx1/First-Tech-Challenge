@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -29,6 +33,8 @@ public class API {
             s.init(map);
         }
         Sensors.Color.sensor = map.colorSensor.get("color");
+        System.setOut(new TelemetryPrintStream(mode.telemetry));
+        
     }
     
     public static void uninit() {
@@ -36,8 +42,7 @@ public class API {
     }
     
     public static void print(String s) {
-        opmode.telemetry.addLine(s);
-        opmode.telemetry.update();
+        System.out.print(s);
     }
     
     public static void print(String s1, String s2) {
@@ -49,6 +54,41 @@ public class API {
         try{
             Thread.sleep((long) (seconds*1000));
         } catch (Exception e) {}
+    }
+    
+    private static class TelemetryPrintStream extends PrintStream {
+        private final Telemetry telemetry;
+        private TelemetryPrintStream(Telemetry telemetry) {
+            super(null);
+            this.telemetry = telemetry;
+        }
+        private void ensureOpen() throws IOException {
+            if (telemetry==null) throw new IOException("telemetry does not exist");
+        }
+        public void flush() {
+            telemetry.clear();
+        }
+        public void close() {
+            telemetry.clearAll();
+        }
+        public boolean checkError() {
+            return false;
+        }
+        public void write(int b) {
+            write(String.valueOf((byte) b));
+        }
+        public void write(byte[] buf, int off, int len) {
+            write(new String(buf, off, len));
+        }
+        private void write(char[] buf) {
+            write(new String(buf));
+        }
+        private void write(String s) {
+            telemetry.addLine(s);
+        }
+        private void newLine() {
+            telemetry.addLine();
+        }
     }
     
     public static class Sensors {
