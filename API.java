@@ -12,15 +12,16 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import java.util.List;
 
 public class API {
     private static OpMode opmode;
     
     public static void init(OpMode mode) {
         opmode = mode;
-        init(mode.hardwareMap);
-    }
-    private static void init(HardwareMap map) {
+        Tensorflow.init(mode);
+        
+        HardwareMap map = mode.hardwareMap;
         for (Motor m : Motor.values()) {
             m.init(map);
         }
@@ -28,6 +29,10 @@ public class API {
             s.init(map);
         }
         Sensors.Color.sensor = map.colorSensor.get("color");
+    }
+    
+    public static void uninit() {
+        Tensorflow.uninit();
     }
     
     public static void print(String s) {
@@ -134,7 +139,7 @@ public class API {
         }
     }
     
-    public class Tensorflow {
+    public static class Tensorflow {
         private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
         private static final String LABEL_FIRST_ELEMENT = "Stone";
         private static final String LABEL_SECOND_ELEMENT = "Skystone";
@@ -144,6 +149,8 @@ public class API {
         private static TFObjectDetector tfod;
         
         private static void init(OpMode opmode) {
+            HardwareMap hardwareMap = opmode.hardwareMap;
+            
             VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
             parameters.vuforiaLicenseKey = VUFORIA_KEY;
             parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
@@ -152,7 +159,7 @@ public class API {
             if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
                 int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
                 TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-                tfodParameters.minimumConfidence = 0.5;
+                tfodParameters.minimumConfidence = 0.3;
                 tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
                 tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
             } else {
@@ -183,10 +190,10 @@ public class API {
             private final String label;
             private DetectedObject(Recognition recognition) {
                 label = recognition.getLabel();
-                x1 = (int) (recognition.getLeft());
-                x2 = (int) (recognition.getRight());
-                y1 = (int) (720-recognition.getBottom());
-                y2 = (int) (720-recognition.getTop());
+                x1 = (int) recognition.getLeft();
+                x2 = (int) recognition.getRight();
+                y1 = (int) recognition.getBottom();
+                y2 = (int) recognition.getTop();
                 confidence = recognition.getConfidence();
             }
             
