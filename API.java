@@ -23,8 +23,9 @@ public class API {
     
     public static void init(OpMode mode) {
         opmode = mode;
+        try {
         Tensorflow.init(mode);
-        
+        } catch (Exception e) {}
         HardwareMap map = mode.hardwareMap;
         for (Motor m : Motor.values()) {
             m.init(map);
@@ -32,8 +33,7 @@ public class API {
         for (Servo s : Servo.values()) {
             s.init(map);
         }
-        Sensors.Color.sensor = map.colorSensor.get("color");
-        System.setOut(new TelemetryPrintStream(mode.telemetry));
+        //Sensors.Color.sensor = map.colorSensor.get("color");
         
     }
     
@@ -42,7 +42,8 @@ public class API {
     }
     
     public static void print(String s) {
-        System.out.print(s);
+        opmode.telemetry.addLine(s);
+        opmode.telemetry.update();
     }
     
     public static void print(String s1, String s2) {
@@ -56,40 +57,6 @@ public class API {
         } catch (Exception e) {}
     }
     
-    private static class TelemetryPrintStream extends PrintStream {
-        private final Telemetry telemetry;
-        private TelemetryPrintStream(Telemetry telemetry) {
-            super(null);
-            this.telemetry = telemetry;
-        }
-        private void ensureOpen() throws IOException {
-            if (telemetry==null) throw new IOException("telemetry does not exist");
-        }
-        public void flush() {
-            telemetry.clear();
-        }
-        public void close() {
-            telemetry.clearAll();
-        }
-        public boolean checkError() {
-            return false;
-        }
-        public void write(int b) {
-            write(String.valueOf((byte) b));
-        }
-        public void write(byte[] buf, int off, int len) {
-            write(new String(buf, off, len));
-        }
-        private void write(char[] buf) {
-            write(new String(buf));
-        }
-        private void write(String s) {
-            telemetry.addLine(s);
-        }
-        private void newLine() {
-            telemetry.addLine();
-        }
-    }
     
     public static class Sensors {
         public static class Color {
@@ -140,6 +107,23 @@ public class API {
             this.direction = direction;
             start(power);
         }
+        
+        public void resetEncoder(boolean enable) {
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            enableEncoder(enable);
+        }
+        
+        public void enableEncoder(boolean enable) {
+            if (enable) {
+                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            } else {
+                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+        }
+        
+        public double getPosition() {
+            return motor.getCurrentPosition();
+        }
     }
     
     public static enum Servo {
@@ -156,9 +140,14 @@ public class API {
             servo = map.get(com.qualcomm.robotcore.hardware.Servo.class, name);
         }
         
+        public void setPosition(double degrees) {
+            servo.setPosition(degrees);
+        }
+        
         public void start(double power) {
             this.power = power;
-            servo.setPosition(direction.i*power);
+            power*=direction.i;
+            servo.setPosition(power/2+0.5);
         }
         
         public void stop() {
