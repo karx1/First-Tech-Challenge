@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -22,26 +23,16 @@ public class Gamepad extends LinearOpMode {
         API.print("Initialized");
         leftMotor = API.Motor.M3;
         rightMotor = API.Motor.M2;
-        csensor = hardwareMap.colorSensor.get("color");
-        csensor.enableLed(false);
-        
-        leftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftMotor.setDirection(API.Direction.REVERSE);
         
         
         waitForStart();
         runtime.reset();
         
         while (opModeIsActive()) {
-         int ci = csensor.argb();
-         String c = Integer.toString(ci);
+
          
-         
-         //String c = "Red:"+csensor.red()+" Green:"+csensor.green()+" Blue:"+csensor.blue();
-         API.print("Color detected:" + c);
-         if (ci==33554432) {
-             API.print("STONE DETECTED");
-         }
-         
+
          leftMotor.start(-gamepad1.left_stick_y);
          rightMotor.start(-gamepad1.right_stick_y);
         }
