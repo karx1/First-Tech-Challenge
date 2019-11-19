@@ -17,8 +17,15 @@ public class Gamepad3 extends LinearOpMode {
         API.init(this);
         
         fr.setDirection(API.Direction.REVERSE);
-        bl.setDirection(API.Direction.REVERSE);
-
+        br.setDirection(API.Direction.REVERSE);
+        fr.stop();
+        br.stop();
+        
+        fl.resetEncoder(true);
+        fr.resetEncoder(true);
+        bl.resetEncoder(true);
+        br.resetEncoder(true);
+        
         waitForStart();
         
         intake.setPosition(0);
@@ -54,11 +61,11 @@ public class Gamepad3 extends LinearOpMode {
             } else if (gamepad1.left_bumper) {
                 speed = Math.max(speed-0.005, 0.2);
             }
-            String s = "Speed: " + speed + System.lineSeperator() +
-            "Front Left: " + fl.getPosition() + System.lineSeperator() +
-            "Front Right: " + fr.getPosition() + System.lineSeperator() +
-            "Back Left: " + bl.getPosition() + System.lineSeperator() +
-            "Bak Right: " + br.getPosition() + System.lineSeperator();
+            String s = "Speed: " + speed + System.lineSeparator() +
+            "Front Left: " + fl.getPosition() + System.lineSeparator() +
+            "Front Right: " + fr.getPosition() + System.lineSeparator() +
+            "Back Left: " + bl.getPosition() + System.lineSeparator() +
+            "Back Right: " + br.getPosition();
             API.print(s);
         }
     }
