@@ -1,6 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -11,29 +18,32 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class API {
     private static OpMode opmode;
+    public static MasqAdafruitIMU imu;
     
     public static void init(OpMode mode) {
         opmode = mode;
-        try {
-        Tensorflow.init(mode);
-        } catch (Exception e) {}
         HardwareMap map = mode.hardwareMap;
+        imu = new MasqAdafruitIMU("imu", map);
+        try {
+        //Tensorflow.init(mode);
+        } catch (Exception E) {}
         for (Motor m : Motor.values()) {
             m.init(map);
         }
         for (Servo s : Servo.values()) {
             s.init(map);
         }
-        //Sensors.Color.sensor = map.colorSensor.get("color");
+        Sensors.Color.sensor = map.get(ColorSensor.class, "color");
         
     }
     
@@ -72,6 +82,18 @@ public class API {
             }
             public static int blue() {
                 return sensor.blue();
+            }
+            public static int[] getRGB() {
+                return new int[]{red(), green(), blue()};
+            }
+            public static void enableLight(boolean light) {
+                sensor.enableLed(light);
+            }
+            public static void test() {
+                int[] rgb = getRGB();
+                print("Red: " + rgb[0] + System.lineSeparator() +
+                "Green: " + rgb[1] + System.lineSeparator() +
+                "Blue: " + rgb[2]);
             }
         }
     }
@@ -124,6 +146,13 @@ public class API {
         public double getPosition() {
             return motor.getCurrentPosition();
         }
+        public void setBehavior(MotorBehavior behavior) {
+            if (behavior.s == "brake") {
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            } else {
+                motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            }
+        }
     }
     
     public static enum Servo {
@@ -168,6 +197,68 @@ public class API {
         }
     }
     
+    public static enum MotorBehavior {
+        BRAKE("brake"), FLOAT("float");
+        private final String s;
+        MotorBehavior(String s) {
+            this.s = s;
+        }
+    }
+    
+    public static class MasqAdafruitIMU {
+        private final BNO055IMU imu;
+        private final String name;
+        private double zeroPos;
+        public MasqAdafruitIMU(String name, HardwareMap hardwareMap) {
+            this.name = name;
+            imu = hardwareMap.get(BNO055IMU.class, name);
+            setParameters();
+        }
+
+        private void setParameters() {
+            BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+            parameters.useExternalCrystal = true;
+            parameters.angleUnit = com.qualcomm.hardware.bosch.BNO055IMU.AngleUnit.RADIANS;
+            parameters.pitchMode = com.qualcomm.hardware.bosch.BNO055IMU.PitchMode.WINDOWS;
+            parameters.loggingEnabled = true;
+            parameters.loggingTag = "IMU";
+            imu.initialize(parameters);
+        }
+        private double[] getAngles() {
+            Quaternion quatAngles = imu.getQuaternionOrientation();
+            double w = quatAngles.w;
+            double x = quatAngles.x;
+            double y = quatAngles.y;
+            double z = quatAngles.z;
+
+            double roll = Math.atan2( 2*(w*x + y*z) , 1 - 2*(x*x + y*y) ) * 180.0 / Math.PI;
+            double pitch = Math.asin( 2*(w*y - x*z) ) * 180.0 / Math.PI;
+            double yaw = Math.atan2( 2*(w*z + x*y), 1 - 2*(y*y + z*z) ) * 180.0 / Math.PI;
+
+            return new double[]{yaw, pitch, roll};
+        }
+        public double adjustAngle(double angle) {
+            while (angle > 180)  angle -= 360;
+            while (angle <= -180) angle += 360;
+            return angle;
+        }
+        public double getHeading() {
+            return getAngles()[0];
+        }
+        public double getYaw () {
+            return getHeading() - zeroPos;
+        }
+        public void reset(){
+            zeroPos = getHeading();
+        }
+        public double getPitch() {
+            return getAngles()[1];
+        }
+        public double getRoll() {
+            return getAngles()[2];
+        }
+    }
+    
     public static class Tensorflow {
         private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
         private static final String LABEL_FIRST_ELEMENT = "Stone";
@@ -177,7 +268,7 @@ public class API {
         private static VuforiaLocalizer vuforia;
         private static TFObjectDetector tfod;
         
-        private static void init(OpMode opmode) {
+        private static void init(LinearOpMode opmode) {
             HardwareMap hardwareMap = opmode.hardwareMap;
             
             VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
@@ -188,7 +279,7 @@ public class API {
             if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
                 int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
                 TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-                tfodParameters.minimumConfidence = 0.3;
+                tfodParameters.minimumConfidence = 0.5;
                 tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
                 tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
             } else {
@@ -208,6 +299,11 @@ public class API {
         public static DetectedObject[] getDetections() {
             List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
             if (updatedRecognitions==null) return null;
+            updatedRecognitions.removeIf(new Predicate<Recognition>(){
+                public boolean test(Recognition r) {
+                    return r.getConfidence() <= 0.5;
+                }
+            });
             DetectedObject[] objects = new DetectedObject[updatedRecognitions.size()];
             for (int i = 0; i < objects.length; i++) objects[i] = new DetectedObject(updatedRecognitions.get(i));
             return objects;
