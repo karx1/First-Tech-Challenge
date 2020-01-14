@@ -9,9 +9,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -28,15 +25,25 @@ import java.util.function.Predicate;
 
 public class API {
     private static OpMode opmode;
-    public static MasqAdafruitIMU imu;
+    public static HubIMU imu;
     
-    public static void init(OpMode mode) {
+    public static void init(final OpMode mode) {
         opmode = mode;
+        print("Initializing, please wait");
         HardwareMap map = mode.hardwareMap;
-        imu = new MasqAdafruitIMU("imu", map);
-        try {
-        //Tensorflow.init(mode);
-        } catch (Exception E) {}
+        imu = new HubIMU("imu", map);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Tensorflow.init(mode);
+                } catch (Exception e) {
+                    
+                }
+                print("Tensorflow ready, press play to start");
+            }
+        }).start();
+        
         for (Motor m : Motor.values()) {
             m.init(map);
         }
@@ -61,10 +68,13 @@ public class API {
         opmode.telemetry.update();
     }
     
+    public static void clear() {
+        opmode.telemetry.clear();
+    }
+    
     public static void pause(double seconds) {
-        try{
-            Thread.sleep((long) (seconds*1000));
-        } catch (Exception e) {}
+        double time = opmode.getRuntime() + seconds;
+        while (opmode.getRuntime()<time);
     }
     
     
@@ -99,7 +109,9 @@ public class API {
     }
     
     public static enum Motor {
-        M0("m0"), M1("m1"), M2("m2"), M3("m3");
+        // M0("m0"), M1("m1"), M2("m2"), M3("m3");
+        // Comment out the next line and uncomment above if only using one expansion hub
+        M0("m0"), M1("m1"), M2("m2"), M3("m3"), M4("m4"), M5("m5"), M6("m6"), M7("m7");
         private final String name;
         private DcMotor motor;
         private Direction direction = Direction.FORWARD;
@@ -114,8 +126,21 @@ public class API {
 
         }
         
+        public boolean isBusy() {
+            return motor.isBusy();
+        }
+        
         public void start(double power) {
             try{
+                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                motor.setPower(power*direction.i);
+                this.power = power;
+            } catch (Exception e) {}    
+        }
+        
+        public void setPower(double power) {
+            try{
+                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 motor.setPower(power*direction.i);
                 this.power = power;
             } catch (Exception e) {}    
@@ -135,17 +160,23 @@ public class API {
             enableEncoder(enable);
         }
         
+        public void resetEncoder() {
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+        
+        public void setPosition(int pos, double speed){
+            motor.setTargetPosition(pos*direction.i);
+            motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            motor.setPower(speed);
+        }
+        
         public void enableEncoder(boolean enable) {
-            if (enable) {
-                motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            } else {
-                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            }
         }
         
         public double getPosition() {
             return motor.getCurrentPosition();
         }
+        
         public void setBehavior(MotorBehavior behavior) {
             if (behavior.s == "brake") {
                 motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -205,11 +236,11 @@ public class API {
         }
     }
     
-    public static class MasqAdafruitIMU {
+    public static class HubIMU {
         private final BNO055IMU imu;
         private final String name;
         private double zeroPos;
-        public MasqAdafruitIMU(String name, HardwareMap hardwareMap) {
+        public HubIMU(String name, HardwareMap hardwareMap) {
             this.name = name;
             imu = hardwareMap.get(BNO055IMU.class, name);
             setParameters();
@@ -242,14 +273,16 @@ public class API {
             while (angle <= -180) angle += 360;
             return angle;
         }
+        
+        
         public double getHeading() {
-            return getAngles()[0];
+            return getRoll() - zeroPos;
         }
         public double getYaw () {
-            return getHeading() - zeroPos;
+            return getAngles()[0];
         }
         public void reset(){
-            zeroPos = getHeading();
+            zeroPos = getRoll();
         }
         public double getPitch() {
             return getAngles()[1];
@@ -268,7 +301,7 @@ public class API {
         private static VuforiaLocalizer vuforia;
         private static TFObjectDetector tfod;
         
-        private static void init(LinearOpMode opmode) {
+        private static void init(OpMode opmode) {
             HardwareMap hardwareMap = opmode.hardwareMap;
             
             VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
