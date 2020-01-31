@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import org.firstinspires.ftc.robotcore.external.android.AndroidTextToSpeech;
+import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -14,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.tensorflow.Tensorflow;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -24,15 +27,21 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class API {
+    // Opmode
     private static OpMode opmode;
+    // IMU instance
     public static HubIMU imu;
     
-    public static void init(final OpMode mode) {
+    public static Tensorflow tensorflow;
+    
+    private static final AndroidTextToSpeech textToSpeech = new AndroidTextToSpeech();
+    public static void init(final OpMode mode, boolean tf) {
         opmode = mode;
         print("Initializing, please wait");
         HardwareMap map = mode.hardwareMap;
         imu = new HubIMU("imu", map);
-        new Thread(new Runnable() {
+        // Initialize tensorflow in seperate thread so that no error is raised
+        /*new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -42,21 +51,44 @@ public class API {
                 }
                 print("Tensorflow ready, press play to start");
             }
-        }).start();
+        }).start();*/
         
-        for (Motor m : Motor.values()) {
-            m.init(map);
-        }
-        for (Servo s : Servo.values()) {
-            s.init(map);
-        }
+        textToSpeech.initialize();
+        
+        if (tf) tensorflow = new Tensorflow(mode);
+        for (Motor m : Motor.values()) m.init(map);
+        for (Servo s : Servo.values()) s.init(map);
         Sensors.Color.sensor = map.get(ColorSensor.class, "color");
         
     }
     
-    public static void uninit() {
-        Tensorflow.uninit();
+    public static void delayTask(final Runnable run, final long ms) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.currentThread().sleep(ms);
+                } catch (InterruptedException ie) {
+                }
+                run.run();
+            }
+        }).start();
     }
+    
+    public static void speak(String text) {
+        textToSpeech.speak(text);
+    }
+    
+    public static void init(OpMode opmode) {
+        init(opmode, true);
+    }
+    
+    public static void uninit() {
+        tensorflow.shutdown();
+        textToSpeech.close();
+    }
+    
+    
     
     public static void print(String s) {
         opmode.telemetry.addLine(s);
@@ -119,7 +151,6 @@ public class API {
         Motor(String name) {
             this.name = name;
         }
-        
         void init(HardwareMap map) {
             motor = map.get(DcMotor.class, name);
             motor.setPower(0);
@@ -187,7 +218,7 @@ public class API {
     }
     
     public static enum Servo {
-        S0("s0"), S1("s1"), S2("s2"), S3("s3"), S4("s4"), S5("s5");
+        S0("s0"), S1("s1"), S2("s2"), S3("s3"), S4("s4"), S5("s5"), S6("s6"), S11("s11");
         private final String name;
         private com.qualcomm.robotcore.hardware.Servo servo;
         private Direction direction = Direction.FORWARD;
@@ -202,6 +233,10 @@ public class API {
         
         public void setPosition(double degrees) {
             servo.setPosition(degrees);
+        }
+        
+        public double getPosition() {
+            return servo.getPosition();
         }
         
         public void start(double power) {
@@ -276,13 +311,13 @@ public class API {
         
         
         public double getHeading() {
-            return getRoll() - zeroPos;
+            return getYaw() - zeroPos;
         }
         public double getYaw () {
             return getAngles()[0];
         }
         public void reset(){
-            zeroPos = getRoll();
+            zeroPos = getYaw();
         }
         public double getPitch() {
             return getAngles()[1];
@@ -292,7 +327,7 @@ public class API {
         }
     }
     
-    public static class Tensorflow {
+    /*public static class Tensorflow {
         private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
         private static final String LABEL_FIRST_ELEMENT = "Stone";
         private static final String LABEL_SECOND_ELEMENT = "Skystone";
@@ -379,5 +414,5 @@ public class API {
                 return confidence;
             }
         }
-    }
+    }*/
 }
